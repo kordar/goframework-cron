@@ -1,4 +1,4 @@
-package goframework_rabbitmq
+package goframework_cron
 
 import (
 	"github.com/kordar/gocron"
@@ -10,29 +10,31 @@ var (
 	cronpool = godb.NewDbPool()
 )
 
-func GetCronClient(db string) *gocron.Gocron {
-	return cronpool.Handle(db).(*gocron.Gocron)
+func GetCronClient(name string) *gocron.Gocron {
+	return cronpool.Handle(name).(*gocron.Gocron)
 }
 
 // AddGocronInstance 添加cron
-func AddGocronInstance(db string, f1 func(job gocron.Schedule) map[string]string, f2 func(job gocron.Schedule) bool) error {
-	ins := NewGocronIns(db, f1, f2)
+func AddGocronInstance(name string, f1 func(job gocron.Schedule) map[string]string, f2 func(job gocron.Schedule) bool) error {
+	ins := NewGocronIns(name, f1, f2)
 	return cronpool.Add(ins)
 }
 
 // RemoveGocronInstance 移除cron
-func RemoveGocronInstance(db string) {
-	cronpool.Remove(db)
+func RemoveGocronInstance(name string) {
+	RemoveAllJob(name)
+	Stop(name)
+	cronpool.Remove(name)
 }
 
 // HasGocronInstance cron句柄是否存在
-func HasGocronInstance(db string) bool {
-	return cronpool != nil && cronpool.Has(db)
+func HasGocronInstance(name string) bool {
+	return cronpool != nil && cronpool.Has(name)
 }
 
-func Add(db string, job gocron.Schedule) bool {
-	if HasGocronInstance(db) {
-		client := GetCronClient(db)
+func AddJob(name string, job gocron.Schedule) bool {
+	if HasGocronInstance(name) {
+		client := GetCronClient(name)
 		client.Remove(job.GetId())
 		client.Add(job)
 		return true
@@ -40,9 +42,9 @@ func Add(db string, job gocron.Schedule) bool {
 	return false
 }
 
-func AddWithJob(db string, job gocron.Schedule, funcJob cron.Job) bool {
-	if HasGocronInstance(db) {
-		client := GetCronClient(db)
+func AddCronJob(name string, job gocron.Schedule, funcJob cron.Job) bool {
+	if HasGocronInstance(name) {
+		client := GetCronClient(name)
 		client.Remove(job.GetId())
 		client.AddWithJob(job, funcJob)
 		return true
@@ -50,9 +52,9 @@ func AddWithJob(db string, job gocron.Schedule, funcJob cron.Job) bool {
 	return false
 }
 
-func AddWithChain(db string, job gocron.Schedule, f func(funcJob cron.Job) cron.Job) bool {
-	if HasGocronInstance(db) {
-		client := GetCronClient(db)
+func AddCronJobWithChain(name string, job gocron.Schedule, f func(funcJob cron.Job) cron.Job) bool {
+	if HasGocronInstance(name) {
+		client := GetCronClient(name)
 		client.Remove(job.GetId())
 		client.AddWithChain(job, f)
 		return true
@@ -60,19 +62,42 @@ func AddWithChain(db string, job gocron.Schedule, f func(funcJob cron.Job) cron.
 	return false
 }
 
-func Stop(db string, id string) bool {
-	if HasGocronInstance(db) {
-		client := GetCronClient(db)
+func RemoveJob(name string, id string) bool {
+	if HasGocronInstance(name) {
+		client := GetCronClient(name)
 		client.Remove(id)
 		return true
 	}
 	return false
 }
 
-func Prints(db string) []*gocron.EntryItem {
-	if HasGocronInstance(db) {
-		client := GetCronClient(db)
+func RemoveAllJob(name string) {
+	items := GetEntryItems(name)
+	for _, item := range items {
+		RemoveJob(name, item.Id)
+	}
+}
+
+func GetEntryItems(name string) []*gocron.EntryItem {
+	if HasGocronInstance(name) {
+		client := GetCronClient(name)
 		return client.Prints()
 	}
 	return []*gocron.EntryItem{}
+}
+
+func Stop(name string) {
+	if HasGocronInstance(name) {
+		client := GetCronClient(name)
+		client.Stop()
+	}
+}
+
+// GetCron 获取cron.Cron对象
+func GetCron(name string) *cron.Cron {
+	if HasGocronInstance(name) {
+		client := GetCronClient(name)
+		return client.Cron()
+	}
+	return nil
 }

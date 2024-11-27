@@ -1,4 +1,4 @@
-package goframework_rabbitmq
+package goframework_cron
 
 import (
 	"github.com/kordar/gocron"
