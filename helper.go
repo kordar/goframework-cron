@@ -42,6 +42,7 @@ func AddJob(name string, job gocron.Schedule) bool {
 	return false
 }
 
+// AddCronJob 添加job到gocron
 func AddCronJob(name string, job gocron.Schedule, funcJob cron.Job) bool {
 	if HasGocronInstance(name) {
 		client := GetCronClient(name)
@@ -62,6 +63,7 @@ func AddCronJobWithChain(name string, job gocron.Schedule, f func(funcJob cron.J
 	return false
 }
 
+// RemoveJob 移除job
 func RemoveJob(name string, id string) bool {
 	if HasGocronInstance(name) {
 		client := GetCronClient(name)
@@ -71,10 +73,19 @@ func RemoveJob(name string, id string) bool {
 	return false
 }
 
+// RemoveAllJob 移除所有job
 func RemoveAllJob(name string) {
 	items := GetEntryItems(name)
 	for _, item := range items {
 		RemoveJob(name, item.Id)
+	}
+}
+
+// ReloadJob 重新加载job
+func ReloadJob(name string, id string) {
+	if HasGocronInstance(name) {
+		client := GetCronClient(name)
+		client.Reload(id)
 	}
 }
 
@@ -86,11 +97,21 @@ func GetEntryItems(name string) []*gocron.EntryItem {
 	return []*gocron.EntryItem{}
 }
 
+// Stop 停止gocron
 func Stop(name string) {
 	if HasGocronInstance(name) {
 		client := GetCronClient(name)
 		client.Stop()
 	}
+}
+
+// StateJob 获取所有job状态
+func StateJob(name string) []gocron.StateEntryItem {
+	if HasGocronInstance(name) {
+		client := GetCronClient(name)
+		return client.State()
+	}
+	return make([]gocron.StateEntryItem, 0)
 }
 
 // GetCron 获取cron.Cron对象
