@@ -9,8 +9,10 @@ type GocronIns struct {
 	ins  *gocron.Gocron
 }
 
-func NewGocronIns(name string, f1 func(job gocron.Schedule) map[string]string, f2 func(job gocron.Schedule) bool) *GocronIns {
-	G := gocron.NewGocron(f1, f2)
+func NewGocronIns(name string, f1 gocron.InitializeFunction, f2 gocron.RuntimeFunction) *GocronIns {
+	G := gocron.NewGocron(nil)
+	G.SetInitFn(f1)
+	G.SetRuntimeFn(f2)
 	G.Start()
 	return &GocronIns{name: name, ins: G}
 }

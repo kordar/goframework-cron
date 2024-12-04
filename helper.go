@@ -15,7 +15,7 @@ func GetCronClient(name string) *gocron.Gocron {
 }
 
 // AddGocronInstance 添加cron
-func AddGocronInstance(name string, f1 func(job gocron.Schedule) map[string]string, f2 func(job gocron.Schedule) bool) error {
+func AddGocronInstance(name string, f1 gocron.InitializeFunction, f2 gocron.RuntimeFunction) error {
 	ins := NewGocronIns(name, f1, f2)
 	return cronpool.Add(ins)
 }
@@ -42,27 +42,6 @@ func AddJob(name string, job gocron.Schedule) bool {
 	return false
 }
 
-// AddCronJob 添加job到gocron
-func AddCronJob(name string, job gocron.Schedule, funcJob cron.Job) bool {
-	if HasGocronInstance(name) {
-		client := GetCronClient(name)
-		client.Remove(job.GetId())
-		client.AddWithJob(job, funcJob)
-		return true
-	}
-	return false
-}
-
-func AddCronJobWithChain(name string, job gocron.Schedule, f func(funcJob cron.Job) cron.Job) bool {
-	if HasGocronInstance(name) {
-		client := GetCronClient(name)
-		client.Remove(job.GetId())
-		client.AddWithChain(job, f)
-		return true
-	}
-	return false
-}
-
 // RemoveJob 移除job
 func RemoveJob(name string, id string) bool {
 	if HasGocronInstance(name) {
@@ -75,9 +54,9 @@ func RemoveJob(name string, id string) bool {
 
 // RemoveAllJob 移除所有job
 func RemoveAllJob(name string) {
-	items := GetEntryItems(name)
-	for _, item := range items {
-		RemoveJob(name, item.Id)
+	vos := StateJob(name)
+	for _, vo := range vos {
+		RemoveJob(name, vo.JobId)
 	}
 }
 
@@ -89,29 +68,29 @@ func ReloadJob(name string, id string) {
 	}
 }
 
-func GetEntryItems(name string) []*gocron.EntryItem {
+func GetEntryItems(name string) []gocron.JobStateItem {
 	if HasGocronInstance(name) {
 		client := GetCronClient(name)
 		return client.Prints()
 	}
-	return []*gocron.EntryItem{}
+	return []gocron.JobStateItem{}
 }
 
 // Stop 停止gocron
 func Stop(name string) {
 	if HasGocronInstance(name) {
 		client := GetCronClient(name)
-		client.Stop()
+		client.Cron().Stop()
 	}
 }
 
 // StateJob 获取所有job状态
-func StateJob(name string) []gocron.StateEntryItem {
+func StateJob(name string) []gocron.JobStateVO {
 	if HasGocronInstance(name) {
 		client := GetCronClient(name)
 		return client.State()
 	}
-	return make([]gocron.StateEntryItem, 0)
+	return make([]gocron.JobStateVO, 0)
 }
 
 // GetCron 获取cron.Cron对象
